@@ -1,0 +1,95 @@
+<#
+This is the revert migration tool.
+in case you need to migrate back to your premise.
+https://github.com/Foxavoavo/CustomPSscripts/blob/main/DistributionGroupMigrationTool.ps1
+ replace @YourDomainName.co.uk for your domain.
+#>
+Function Set-Array {
+    Param($EmailAddresses)
+    If ($EmailAddresses) {
+        $Value = New-Object System.Collections.ArrayList
+        ForEach ($EmailAddress in $EmailAddresses) {
+            $DropAddIt = ($EmailAddress.replace('smtp:DROPPED_', 'smtp:')).replace('SMTP:DROPPED_', 'SMTP:')
+            $Value.add($DropAddIt) | Out-Null
+        }
+    }
+    Write-Output $Value
+}
+#Online session evaluation
+Try {
+    $SessionEvaluation = Get-ConnectionInformation
+    If ($SessionEvaluation.State -eq 'Connected') {
+        'Connection to Exchange Online already in place'
+        Start-Sleep -Seconds 5
+    }
+    Else {
+        Import-Module ExchangeOnlineManagement
+        Connect-ExchangeOnline
+    }
+}
+Catch { $_.Exception
+    Return
+}
+#Exchange Online Task
+$DistributionGroupNames = import-csv 'c:\ScriptFolder\MigrationTool\rollback_DistributionGroupList.csv'
+ForEach ($DistributionGroup in $DistributionGroupNames) {
+    $DistributionGroupName = $DistributionGroup.GroupName
+    $Evaluation = Get-Recipient $DistributionGroupName -Properties Capabilities -ErrorAction SilentlyContinue | Select-Object name, primarysmtpaddress, capabilities
+    If ($Evaluation.primarysmtpaddress -like "DROPPED_*" -or $Evaluation.capabilities -like 'MasteredOnPremise') {
+        $Evaluation = Get-Recipient "_$DistributionGroupName" -ea silentlycontinue | Select-Object name
+        If ($Evaluation.name.count -gt 0) {
+            $DistributionGroupName = "_$DistributionGroupName"
+            Try {
+                Remove-DistributionGroup $DistributionGroupName -Confirm:$False -ErrorAction SilentlyContinue
+                Write-Output "===>>> On-Cloud $DistributionGroupName removed!"
+            }
+            Catch { $_.Exception }
+        }
+        Else { "===>>> $DistributionGroupName Not Found" }    
+    }
+    Else {
+        Try {
+            Remove-DistributionGroup $DistributionGroupName -Confirm:$False -ErrorAction SilentlyContinue
+            Write-Output "===>>> On-Cloud $DistributionGroupName removed!"
+        }
+        Catch { $_.Exception }
+    }
+}
+Write-Output "===>>> Exchange Online Task completed, going to Exchange On-Premise"
+Disconnect-ExchangeOnline -Confirm:$False
+Start-Sleep -Seconds 2
+#Exchange On-Premise task
+#
+#On-premise exchange PSSession
+<#
+https://sysadminguides.org/2017/05/02/how-to-pass-credentials-in-powershell/
+#>
+$username = # your ADDS Admin UserName here.
+$password = Get-Content "Your Password file here" | ConvertTo-SecureString # your password here.
+$creds = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $username, $password
+Try {
+    $Session = New-PSSession -ConfigurationName Microsoft.Exchange -ConnectionUri "your Exhange On-premise URI here" -Authentication Kerberos -Credential $creds # your Exchange on-prem uri here.
+    Import-PSSession $Session -AllowClobber | Out-Null
+}
+Catch {
+    $_.Exception
+}
+$DistributionGroupNames = import-csv 'c:\ScriptFolder\MigrationTool\rollback_DistributionGroupList.csv'
+ForEach ($DistributionGroup in $DistributionGroupNames) {
+    $DistributionGroupName = $DistributionGroup.GroupName
+    $DroppedName = "DROPPED_" + $DistributionGroupName
+    $Evaluation = Get-Recipient $DroppedName -ea silentlycontinue | Where-Object { $_.Name -notlike $DistributionGroupName } | Select-Object name
+
+    If ($Evaluation.name.count -eq 1) {
+        $DroppedEmailAddresses = Get-DistributionGroup $DroppedName | Select-Object -ExpandProperty EmailAddresses
+        $AddressestoUnDrop = $DroppedEmailAddresses | Where-Object { $_ -like 'smtp*' }
+        $RevertedAddresses = Set-Array -EmailAddresses $AddressestoUnDrop
+        $RevertAlias = $DistributionGroupName.Replace('@YourDomainName.co.uk', '').replace(' ', '')
+        Try {
+            Set-DistributionGroup -Identity $DroppedName -Name $DistributionGroupName -DisplayName $DistributionGroupName -Alias $RevertAlias -EmailAddressPolicyEnabled $False -EmailAddresses $RevertedAddresses -HiddenFromAddressListsEnabled:$False
+            Write-Output "===>>> On-Prem $DistributionGroupName has been re-instated."
+        }
+        Catch { $_.Exception }
+    }
+    Else { "===>>> $DroppedName Not Found" }
+}
