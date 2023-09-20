@@ -1,5 +1,10 @@
 <#
-browse user folders and look for left over application parts
+Compare versions of Ms Teams in program files & on the user profiles.
+for my customer, I use a custom MS Teams package to compare the version to.
+
+the paths to compare:
+"C:\Users\Username\AppData\Local\Microsoft\Teams\current\Teams.exe" with an array 
+and C:\Program Files (x86)\Teams Installer -- looks for x64 too.
 #>
 Function Get-TeamsObjects {
     param(
