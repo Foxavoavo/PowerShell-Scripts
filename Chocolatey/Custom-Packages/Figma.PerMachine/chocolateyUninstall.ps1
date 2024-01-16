@@ -5,7 +5,7 @@ $ApplicationName = 'Figma'
 $ProcessList = Get-Process | Where-Object {$_.Name -like 'figma*'} | Select-Object ProcessName
 ForEach($Process in $ProcessList) {
     $ProcessName = $Process.ProcessName
-    Stop-Process -Name $ProcessName -Force
+    Stop-Process -Name $ProcessName -Force -ErrorAction SilentlyContinue
 }
 & Choco Uninstall $ApplicationName -r --no-progress
 #housekeep
