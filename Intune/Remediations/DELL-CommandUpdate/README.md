@@ -7,3 +7,7 @@ I use my chocolatey repository to install DELL command and update and also to pa
 https://www.dell.com/support/manuals/en-us/command-update/dellcommandupdate_rg/dell-command-update-cli-commands?guid=guid-92619086-5f7c-4a05-bce2-0d560c15e8ed&lang=en-us
 https://www.dell.com/support/kbdoc/en-uk/000187573/bios-password-is-not-included-in-the-exported-configuration-of-dell-command-update
 https://www.dell.com/support/kbdoc/en-uk/000187573/bios-password-is-not-included-in-the-exported-configuration-of-dell-command-update?lang=en
+
+:^ )
+
+Gus
