@@ -1,8 +1,10 @@
-# CustomPSscripts
 I drop here some of my custom scripts
 
-the 1st one helps you to migrate your exhv distribution group from exchange on premises to exchange online.
-will put more of my work and add descriptions:^ )
+I code these tool to migrate exchange distribution groups from exchange on premises to exchange online for one of my customers.
+because, sadly there was no tool to do it anymore.
 
-cheers 
+there is the migration and the batch to revert bac to exchange on-prem if need it.
+
+:^ )
+
 Gus 
