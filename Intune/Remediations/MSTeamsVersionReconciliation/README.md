@@ -10,3 +10,7 @@ the remediaiton will install the custom package & copy the teams files in C:\Pro
 then, deletes the 'current' teams folder on the appData for the users like here: "C:\Users\Username\AppData\Local\Microsoft\Teams\current\Teams.exe"
 
 the remediation evaluates if the user is in session, if so will skip that user and update next time the user is offline.
+
+:^ )
+
+Gus
