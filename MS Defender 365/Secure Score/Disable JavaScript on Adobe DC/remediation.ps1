@@ -48,17 +48,17 @@ $ConfigurationArguments = @{
 Switch (Test-Path $Path) {
 	$True {
 		$Evaluation = Get-ItemProperty -Path $RegistryItemPath -ErrorAction SilentlyContinue
-		If ($Evaluation.bDisableJavaScript.count -gt 0) { Set-RegistryKeys -ItemValue 'Set' }
+		If ($Evaluation.bDisableJavaScript.count -gt 0) { Set-RegistryKeys @ConfigurationArguments -ItemValue 'Set' }
 		Else {
 			Switch (Test-Path $RegistryItemPath) {
-				$True { Set-RegistryKeys -ItemValue 'New' }
-				$False { Set-RegistryKeys -ItemValue 3 }
+				$True { Set-RegistryKeys @ConfigurationArguments -ItemValue 'New' }
+				$False { Set-RegistryKeys @ConfigurationArguments -ItemValue 3 }
 			}	
 		}
 	}
 	$False {
-		If ((Test-Path $chk0) -eq $False) { Set-RegistryKeys -ItemValue 0 }
-		If ((Test-Path $chk1) -eq $False) { Set-RegistryKeys -ItemValue 1 }
-		If ((Test-Path $chk2) -eq $False) { Set-RegistryKeys -ItemValue 2 }
+		If ((Test-Path $chk0) -eq $False) { Set-RegistryKeys @ConfigurationArguments -ItemValue 0 }
+		If ((Test-Path $chk1) -eq $False) { Set-RegistryKeys @ConfigurationArguments -ItemValue 1 }
+		If ((Test-Path $chk2) -eq $False) { Set-RegistryKeys @ConfigurationArguments -ItemValue 2 }
 	}
 }
