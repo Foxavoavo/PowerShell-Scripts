@@ -22,7 +22,7 @@ foreach ($user in $RAW_Users) {
             $E = $AzureGroup.Mail 
             #report here
             Start-Sleep -s 1
-            "===================>>>>> $AG checked okay"
+            "===>>> $AG checked okay"
             Add-Content $Result "$AG,$GT,$e" 
         }
     }
