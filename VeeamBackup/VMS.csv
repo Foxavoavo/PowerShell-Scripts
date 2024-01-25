@@ -1,0 +1,2 @@
+vmnames,Directory,HostName,EnableQuiescence
+VMName,FolderPathToSave,VCS,$True-Or-$False
