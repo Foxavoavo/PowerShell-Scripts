@@ -1,37 +1,29 @@
 <#
-Compare versions of Ms Teams in program files & on the user profiles.
-for my customer, I use a custom MS Teams package to compare the version to.
-
-the paths to compare:
-"C:\Users\Username\AppData\Local\Microsoft\Teams\current\Teams.exe" with an array 
-and C:\Program Files (x86)\Teams Installer -- looks for x64 too.
+Evaluate if Ms Teams V1 in device is outdated.
+Evaluate Ms Teams V1 in user profiles.
+Also, look for left over Ms Teams V1 app parts in User profiles too.
 #>
 Function Get-TeamsObjects {
-    param(
-        $Usage,
-        $Version,
-        $RepoAvailablePackage,
-        $Username
-    )
+    param($Usage, $Version, $RepoAvailablePackage, $Username)
     #tailor
     $Package = $RepoAvailablePackage | Select-String -Pattern '\w*Microsoft-Teams-Update.PerMachine*'
     [regex]$regex = '(?<=\s).*'
     $RepoAvailableVersion = $regex.Matches($Package).Value
-    $ToReview = New-Object System.Collections.ArrayList
-    $UsersToReview = New-Object System.Collections.ArrayList  
+    $ToReview = 0
+    $UsersToReview = 0
     If ($Usage -eq 'App') {
         Switch ($Version) {
             { $Null -eq $_ } {
                 #Write-Output 'Local Teams Not Found'
-                #$ToReview.add(1) | Out-Null
+                #$ToReview = 0
             }
             { [Version]$_ -lt [Version]$RepoAvailableVersion } {
                 #Write-Output 'Local Teams needs update'
-                $ToReview.add('1') | Out-Null
+                $ToReview = 1
             }
             { [Version]$_ -ge [Version]$RepoAvailableVersion } {
                 #Write-Output 'Local Teams at glance'
-                $ToReview.add('0') | Out-Null
+                $ToReview = 0
             }
         }
         Write-Output $ToReview
@@ -40,15 +32,15 @@ Function Get-TeamsObjects {
         Switch ($Version) {
             { $Null -eq $_ } {
                 #Write-Output "===>>> Local Teams Not Found for $User"
-                #$UsersToReview.add('0') | Out-Null
+                $UsersToReview = 0
             }
             { [Version]$_ -lt [Version]$RepoAvailableVersion } {
                 #Write-Output "===>>> Local Teams needs update for $User"
-                $UsersToReview.add('1') | Out-Null
+                $UsersToReview = 1
             }
             { [Version]$_ -ge [Version]$RepoAvailableVersion } {
                 #Write-Output "===>>> Local Teams at glance for $User"
-                $UsersToReview.add('0') | Out-Null
+                $UsersToReview = 0
             }
         }
         Write-Output $UsersToReview
@@ -59,6 +51,8 @@ $RepoAvailablePackage = & Choco search Microsoft-Teams-Update
 #local paths
 $Teams32Path = "${Env:ProgramFiles(x86)}\Teams Installer"
 $Teams64Path = "${Env:ProgramFiles}\Teams Installer"
+#housekepp evaluation
+$Housekeep = 0
 $Paths = @($Teams32Path, $Teams64Path)
 Foreach ($Path in $Paths) {
     Switch (Test-Path $Path) {
@@ -67,18 +61,19 @@ Foreach ($Path in $Paths) {
     }
 }
 #Local drive application version validation
-Switch(Test-Path $LocalTeams){
-    $True{
+Switch (Test-Path $LocalTeams) {
+    $True {
         $LocalTeamsVersion = (Get-Item $LocalTeams).VersionInfo.ProductVersion
         $LocalResult = Get-TeamsObjects -Version $LocalTeamsVersion  -RepoAvailablePackage $RepoAvailablePackage -Usage 'App'
     }
     $False {}
 }
 #User profile version validation
-$Users = Get-ChildItem "${env:SystemDrive}\users" -Exclude 'defaultuser0', 'public' | Select-Object FullName, Name
+$Users = Get-ChildItem "${env:SystemDrive}\users" -Exclude 'chocolateylocaladmin', 'defaultuser0', 'public' | Select-Object FullName, Name
 ForEach ($User in $Users) {
     $UserPath = $User.FullName
     $Username = $User.Name
+    #Defender 365 hash
     $TeamsUserPath = "$UserPath\AppData\Local\Microsoft\Teams\current\Teams.exe"
     #Evaluation
     Switch (Test-Path $TeamsUserPath) {
@@ -88,23 +83,35 @@ ForEach ($User in $Users) {
             #Write-Output "$Username have Teams"
         }
         $False {
-            #Write-Output "$Username doesn't have Teams"
+            #check for dead path
+            $TeamsDeadPath = $TeamsUserPath -replace ('\\\w*current\\\w*Teams.exe', '')
+            If ((Test-path "$TeamsDeadPath\.dead") -eq $True) { $Housekeep = 1 }
         }
     }
 }
+#App Evaluations
 If ($LocalResult -eq 0 -and $UserResult -eq 0) {
-    #'both are 0'
+    Write-Output '===>>> User & Device are both 0'
     Exit 0
 }
+If ($LocalResult -eq 0 -and $Null -eq $UserResult) {
+    Write-Output '===>>> Device teams compliant, no user or hotdesk'
+    Exit 0
+
+}
 If ($LocalResult -eq 1 -and $UserResult -eq 0) {
-    #'there is 1'
+    Write-Output '===>>> Device is not compliant = 1 User is 0'
     Exit 1
 }
 If ($LocalResult -eq 0 -and $UserResult -eq 1) {
-    #'there is 1'
+    Write-Output '===>>> Device is compliant but User is not = 1'
     Exit 1
 }
 If ($LocalResult -eq 1 -and $UserResult -eq 1) {
-    #'both are 1'
+    Write-Output '===>>> Device & User are not complaint = 1'
+    Exit 1
+}
+If ($Housekeep -eq 1) {
+    Write-Output '===>>> User teams left over to clean =1'
     Exit 1
 }
