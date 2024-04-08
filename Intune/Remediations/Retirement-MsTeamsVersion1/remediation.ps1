@@ -31,10 +31,6 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
                 $True {
                     Switch (Test-Path "$UserPath\AppData\Local\Microsoft\Teams\Update.exe") {
                         $True { 
-                            Write-output "Teams stack files found in $Username profile, attempting to uninstall"
-                            & "$UserPath\AppData\Local\Microsoft\Teams\Update.exe" --uninstall -s 
-                        }
-                        $False {
                             # Check for dead files in the user profile Teams folder
                             Switch (Test-Path "$UserPath\AppData\Local\Microsoft\Teams\.dead") { 
                                 $True { 
@@ -42,10 +38,12 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
                                     Remove-Item "$UserPath\AppData\Local\Microsoft\Teams" -Force -Recurse -ErrorAction SilentlyContinue 
                                 }
                                 $False { 
+                                    # Scan for leftovers
                                     $Files = Get-ChildItem "$UserPath\AppData\Local\Microsoft\Teams"
                                     Switch ($Files) {
                                         { $_.Count -gt 0 } { 
                                             Write-Output 'Left over files in the folder found, attempting to remove files'
+                                            & "$UserPath\AppData\Local\Microsoft\Teams\Update.exe" --uninstall -s 
                                             Remove-Item "$UserPath\AppData\Local\Microsoft\Teams\*" -Force -Recurse -ErrorAction SilentlyContinue 
                                         }
                                         { $_.Count -eq 0 } { 
@@ -54,15 +52,14 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
                                         }
                                     }
                                     Write-output ".dead Teams file not found in $Username profile"
-                                    Exit 0
                                 }
                             }
+                            
                         }
                     }
                 }
                 $False { 
-                    Write-output "Teams folder not found in $Username profile"
-                    Exit 0
+                    Write-output "Teams folder not found in Users profile"
                 }
             }
         }
