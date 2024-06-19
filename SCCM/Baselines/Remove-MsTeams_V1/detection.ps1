@@ -10,6 +10,7 @@ Remove old Ms Teams - combined
  c) Remove the leftover empty teams folder (line 52)
  d) check for user in session and delete teams v1 left over keys on user registry.
  e) load users reg hives for those users not in session and delete teams v1 left over registry keys.
+ f) for those users in session, there is the last array to evaluate for teams v1 registry keys. 
  
  Reference documents:
 
@@ -101,6 +102,23 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
                 [gc]::Collect()
                 [gc]::WaitForPendingFinalizers()
                 & reg.exe unload "HKU\$username" | Out-Null
+            }
+        }
+        # Handle user in session
+        If (($UserOnSession).count -gt 0) { 
+            $Hashes = Get-ChildItem -path HKU: | Where-Object { $_.Name -notmatch "Classes" -and $_.Name -match 'S-1-' } | select-object name
+            ForEach ($Hash in $Hashes) {
+                $UserSID = $Hash.name
+                $TeamsPath = "HKU:\$UserSID\Software\Microsoft\Windows\CurrentVersion\Uninstall\Teams"
+                Switch (Test-Path $TeamsPath) {
+                    $True { 
+                        #Write-Output "Teams in $UserSID" 
+                        $Results = 1
+                    }
+                    $False { 
+                        #Write-Output "No teams in $UserSID"  
+                    }
+                }
             }
         }
         # Detach HKU drive post the user array
