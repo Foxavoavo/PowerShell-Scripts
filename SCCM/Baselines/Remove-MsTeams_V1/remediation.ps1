@@ -10,7 +10,7 @@ Remove old Ms Teams - combined
  c) Remove the leftover empty teams folder (line 52)
  d) check for user on session and delete teams v1 left over keys.
  e) load users reg hives that are not on session and delete teams v1 left over keys.
- 
+ f) for those users in session, there is the last array to evaluate for teams v1 registry keys. 
  Reference documents:
 
 https://www.microsoft.com/en-gb/microsoft-teams/download-app
@@ -76,23 +76,38 @@ Function Remove-MSTeamsItems {
         }
         # Evaluate for left over reg keys
         If (($UserOnSession | Select-String -Pattern $Username).count -ne 1) {
-            Write-Output "$username not on session, loading reg now"
+            #Write-Output "$username not on session, loading reg now"
             & reg.exe load "HKEY_USERS\$Username" "C:\Users\$Username\ntuser.dat" | Out-Null
         }
         Switch (Test-Path "HKU:\$Username\Software\Microsoft\Windows\CurrentVersion\Uninstall\Teams") { 
             $True { 
-                Write-Output "Left over reg key found on $username"
+                #Write-Output "Left over reg key found on $username"
                 Remove-Item -Path "HKU:\$Username\Software\Microsoft\Windows\CurrentVersion\Uninstall\Teams" -Force -Recurse -ErrorAction SilentlyContinue
             }
             $False { }
         }
         If (($UserOnSession | Select-String -Pattern $Username).count -ne 1) {
-            Write-Output "$username not on session, unloading reg now"
+            #Write-Output "$username not on session, unloading reg now"
             [gc]::Collect()
             [gc]::WaitForPendingFinalizers()
             & reg.exe unload "HKU\$username" | Out-Null
         }
-    }  
+    }
+    # Handle user in session
+    If (($UserOnSession).count -gt 0) { 
+        $Hashes = Get-ChildItem -path HKU: | Where-Object { $_.Name -notmatch "Classes" -and $_.Name -match 'S-1-' } | select-object name
+        ForEach ($Hash in $Hashes) {
+            $UserSID = $Hash.name
+            $TeamsPath = "HKU:\$UserSID\Software\Microsoft\Windows\CurrentVersion\Uninstall\Teams"
+            Switch (Test-Path $TeamsPath) {
+                $True { 
+                    Write-Output "Teams in $UserSID" 
+                    Remove-Item $TeamsPath -Force -Recurse -ErrorAction SilentlyContinue
+                }
+                $False { }
+            }
+        }
+    }
     # Detach HKU drive post the user array
     Remove-PSDrive HKU -ErrorAction SilentlyContinue | Out-Null
     #Write-Output 'HKU detach'
@@ -104,11 +119,11 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
         Try { & msiexec.exe /x'{731F6BAA-A986-45A4-8936-7C3AAAAA760B}' /qn /norestart }
         Catch { }
         Remove-Item "${Env:ProgramFiles(x86)}\Teams Installer" -Force -Recurse -ErrorAction SilentlyContinue
+        Remove-Item 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{73F5EDDD-8C52-4F96-92E0-8204159D12C9}' -Force -Recurse -ErrorAction SilentlyContinue
         # Evaluate for left over reg keys
         $UserOnSession = Get-UserOnSession
         #Housekeep
         Remove-MSTeamsItems -UserOnSession $UserOnSession
-        
     }
     $False {
         # Evaluate for left over reg keys
