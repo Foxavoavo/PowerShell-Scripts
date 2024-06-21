@@ -28,6 +28,10 @@ Function Get-UserOnSession {
     }
     Write-Output $UserSessions 
 }
+# Original Results Variable
+############
+$Results = 0
+############
 # Remove old wide-installed Teams
 Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
     $True { 
@@ -66,11 +70,9 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
                                         }
                                         { $_.Count -eq 0 } { 
                                             #Write-Output 'Empty Teams folder'
-                                            $Results = 0
                                         }
                                     }
                                     #Write-Output ".dead Teams file not present in $Username profile"
-                                    $Results = 0
                                 }
                             }
                         }
@@ -78,7 +80,6 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
                 }
                 $False { 
                     #Write-Output "Teams folder not present in user profiles"
-                    $Results = 0
                 }
             }
             # Evaluate for left over registry keys
@@ -94,7 +95,6 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
                 }
                 $False { 
                     #Write-Output "No left over reg key found on $username"
-                    $Results = 0
                 }
             }
             If (($UserOnSession | Select-String -Pattern $Username).count -ne 1) {
