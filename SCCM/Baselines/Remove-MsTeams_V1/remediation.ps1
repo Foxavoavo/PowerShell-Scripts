@@ -125,7 +125,14 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
         #Housekeep
         Remove-MSTeamsItems -UserOnSession $UserOnSession
     }
-    $False {
+      $False {
+        # Evaluate left over 'MSTeams Wide Install present in device registry'
+        Switch (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{731F6BAA-A986-45A4-8936-7C3AAAAA760B}') {
+            $True {
+                Remove-Item 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{731F6BAA-A986-45A4-8936-7C3AAAAA760B}' -Force -Recurse -ErrorAction SilentlyContinue
+            }
+            $False { }
+        }
         # Evaluate for left over reg keys
         $UserOnSession = Get-UserOnSession
         #Housekeep
