@@ -86,7 +86,7 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
             $UserOnSession = Get-UserOnSession
             If (($UserOnSession | Select-String -Pattern $Username).count -ne 1) {
                 #Write-Output "$username not on session, loading reg now"
-                & reg.exe load "HKEY_Users\$username" "c:\users\$username\ntuser.dat" | Out-Null
+                & reg.exe load "HKEY_Users\$username" "c:\users\$username\ntuser.dat" 2>$Null | Out-Null
             } 
             Switch (Test-Path "HKU:\$username\Software\Microsoft\Windows\CurrentVersion\Uninstall\Teams") { 
                 $True { 
@@ -101,7 +101,7 @@ Switch (Test-Path "${Env:ProgramFiles(x86)}\Teams Installer\Teams.exe") {
                 #Write-Output "$username not on session, unloading reg now"
                 [gc]::Collect()
                 [gc]::WaitForPendingFinalizers()
-                & reg.exe unload "HKU\$username" | Out-Null
+                & reg.exe unload "HKU\$username" 2>$Null | Out-Null
             }
         }
         # Handle user in session
