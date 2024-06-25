@@ -77,7 +77,7 @@ Function Remove-MSTeamsItems {
         # Evaluate for left over reg keys
         If (($UserOnSession | Select-String -Pattern $Username).count -ne 1) {
             #Write-Output "$username not on session, loading reg now"
-            & reg.exe load "HKEY_USERS\$Username" "C:\Users\$Username\ntuser.dat" | Out-Null
+            & reg.exe load "HKEY_USERS\$Username" "C:\Users\$Username\ntuser.dat" 2>$Null | Out-Null
         }
         Switch (Test-Path "HKU:\$Username\Software\Microsoft\Windows\CurrentVersion\Uninstall\Teams") { 
             $True { 
@@ -90,7 +90,7 @@ Function Remove-MSTeamsItems {
             #Write-Output "$username not on session, unloading reg now"
             [gc]::Collect()
             [gc]::WaitForPendingFinalizers()
-            & reg.exe unload "HKU\$username" | Out-Null
+            & reg.exe unload "HKU\$username" 2>$Null | Out-Null
         }
     }
     # Handle user in session
